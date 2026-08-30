@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resilience Demo</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="page-header">
+    <h1>Resilience Demo</h1>
+    <p class="subtitle">Spring Boot Microservices &mdash; Resilience &amp; Observability POC</p>
+  </header>
+
+  <main class="container">
+
+    <section class="card">
+      <h2>Create Order</h2>
+
+      <div class="field">
+        <label for="orderId">Order ID</label>
+        <input type="text" id="orderId" value="1001" />
+      </div>
+
+      <div class="field">
+        <label>Payment Behavior</label>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="paymentType" value="NORMAL" checked />
+            Normal
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="paymentType" value="FAILURE" />
+            Failure
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="paymentType" value="SLOW" />
+            Slow
+          </label>
+        </div>
+      </div>
+
+      <button id="createOrderBtn">Create Order</button>
+    </section>
+
+    <section class="card">
+      <h2>Service Flow</h2>
+      <div class="flow">
+        <span class="flow-step">UI</span>
+        <span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">Order Service <small>:8082</small></span>
+        <span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">Payment Service <small>:8081</small></span>
+      </div>
+    </section>
+
+    <section class="card result-card" id="resultCard" hidden>
+      <h2>Result</h2>
+      <div id="resultBanner" class="banner"></div>
+
+      <dl class="result-grid">
+        <dt>Order ID</dt>
+        <dd id="resOrderId">&mdash;</dd>
+
+        <dt>Payment Status</dt>
+        <dd id="resPaymentStatus">&mdash;</dd>
+
+        <dt>Response Time</dt>
+        <dd id="resResponseTime">&mdash;</dd>
+
+        <dt>HTTP Status</dt>
+        <dd id="resHttpStatus">&mdash;</dd>
+      </dl>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
