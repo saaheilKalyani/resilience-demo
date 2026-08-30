@@ -1,6 +1,7 @@
 // Order Service base URL. The browser calls Order Service directly;
 // Order Service is the one that talks to Payment Service.
 const ORDER_SERVICE_URL = "http://localhost:8082/orders";
+const CIRCUIT_BREAKER_URL = "http://localhost:8082/circuit-breaker";
 
 const createOrderBtn = document.getElementById("createOrderBtn");
 const orderIdInput = document.getElementById("orderId");
@@ -13,8 +14,31 @@ const resResponseTime = document.getElementById("resResponseTime");
 const resHttpStatus = document.getElementById("resHttpStatus");
 const resMechanism = document.getElementById("resMechanism");
 const resAttempts = document.getElementById("resAttempts");
+const resCircuitState = document.getElementById("resCircuitState");
+const resPaymentCalled = document.getElementById("resPaymentCalled");
+
+const cbBadge = document.getElementById("cbBadge");
+const cbName = document.getElementById("cbName");
 
 createOrderBtn.addEventListener("click", createOrder);
+
+// Poll the circuit breaker's state so OPEN -> HALF_OPEN is visible even without clicking
+// Create Order again (the circuit breaker transitions on its own after the wait duration).
+refreshCircuitBreakerStatus();
+setInterval(refreshCircuitBreakerStatus, 3000);
+
+async function refreshCircuitBreakerStatus() {
+  try {
+    const res = await fetch(CIRCUIT_BREAKER_URL);
+    const data = await res.json();
+    cbBadge.textContent = data.state;
+    cbBadge.className = "cb-badge " + data.state.toLowerCase();
+    cbName.textContent = data.name;
+  } catch (error) {
+    cbBadge.textContent = "UNKNOWN";
+    cbBadge.className = "cb-badge unknown";
+  }
+}
 
 async function createOrder() {
   const orderId = orderIdInput.value.trim();
@@ -42,6 +66,7 @@ async function createOrder() {
   } finally {
     createOrderBtn.disabled = false;
     createOrderBtn.textContent = "Create Order";
+    refreshCircuitBreakerStatus();
   }
 }
 
@@ -63,6 +88,10 @@ function showResult(data, httpOk) {
   resHttpStatus.textContent = data.paymentHttpStatus != null ? data.paymentHttpStatus : "—";
   resMechanism.textContent = data.mechanism ?? "—";
   resAttempts.textContent = data.attempts != null ? data.attempts : "—";
+  resCircuitState.textContent = data.circuitState ?? "—";
+  resPaymentCalled.textContent = data.paymentServiceCalled != null
+      ? (data.paymentServiceCalled ? "YES" : "NO")
+      : "—";
 }
 
 function showError(orderId, message) {
@@ -77,4 +106,6 @@ function showError(orderId, message) {
   resHttpStatus.textContent = "—";
   resMechanism.textContent = "—";
   resAttempts.textContent = "—";
+  resCircuitState.textContent = "—";
+  resPaymentCalled.textContent = "—";
 }

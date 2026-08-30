@@ -2,6 +2,7 @@ package com.resilience.demo.order.controller;
 
 import com.resilience.demo.order.service.OrderService;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,5 +22,11 @@ public class OrderController {
     @PostMapping("/orders")
     public OrderResponse createOrder(@RequestBody OrderRequest request) {
         return orderService.createOrder(request);
+    }
+
+    // Lets the UI show the circuit breaker's current state without placing an order.
+    @GetMapping("/circuit-breaker")
+    public CircuitBreakerStatus circuitBreakerStatus() {
+        return orderService.getCircuitBreakerStatus();
     }
 }

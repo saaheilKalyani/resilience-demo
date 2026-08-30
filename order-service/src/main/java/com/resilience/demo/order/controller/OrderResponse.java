@@ -6,7 +6,10 @@ public record OrderResponse(
         int paymentHttpStatus,
         long responseTimeMs,
         String message,
-        String mechanism, // which resilience behavior kicked in: NONE, RETRY, TIMEOUT or FALLBACK
-        int attempts       // how many times Payment Service was actually called
+        // which resilience behavior kicked in: NONE, RETRY, TIMEOUT, CIRCUIT_BREAKER or FALLBACK
+        String mechanism,
+        int attempts,               // how many retry attempts were made for this request
+        String circuitState,        // paymentCircuitBreaker's state at the end of this call
+        boolean paymentServiceCalled // false only when the circuit breaker rejected every attempt
 ) {
 }

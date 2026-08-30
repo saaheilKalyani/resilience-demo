@@ -55,6 +55,14 @@
       </div>
     </section>
 
+    <section class="card">
+      <h2>Circuit Breaker</h2>
+      <div class="cb-status">
+        <span class="cb-badge" id="cbBadge">&mdash;</span>
+        <span class="cb-name" id="cbName">paymentCircuitBreaker</span>
+      </div>
+    </section>
+
     <section class="card result-card" id="resultCard" hidden>
       <h2>Resilience Result</h2>
       <div id="resultBanner" class="banner"></div>
@@ -77,6 +85,12 @@
 
         <dt>Attempts</dt>
         <dd id="resAttempts">&mdash;</dd>
+
+        <dt>Circuit State</dt>
+        <dd id="resCircuitState">&mdash;</dd>
+
+        <dt>Payment Service Called</dt>
+        <dd id="resPaymentCalled">&mdash;</dd>
       </dl>
     </section>
 

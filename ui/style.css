@@ -201,6 +201,42 @@ button:disabled {
   color: var(--fallback-text);
 }
 
+.cb-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cb-badge {
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: var(--border);
+  color: var(--text-muted);
+}
+
+.cb-badge.closed {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.cb-badge.open {
+  background: var(--error-bg);
+  color: var(--error-text);
+}
+
+.cb-badge.half_open {
+  background: var(--fallback-bg);
+  color: var(--fallback-text);
+}
+
+.cb-name {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 .result-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
