@@ -6,10 +6,14 @@ import com.resilience.demo.order.controller.OrderResponse;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.micrometer.tagged.TaggedCircuitBreakerMetrics;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.timelimiter.TimeLimiter;
 import io.github.resilience4j.timelimiter.TimeLimiterConfig;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +41,10 @@ public class OrderService {
     private final CircuitBreaker paymentCircuitBreaker;
     private final ExecutorService paymentExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
+    private final Counter ordersProcessed;
+    private final Counter ordersSuccessful;
+    private final Counter ordersFallback;
+
     public OrderService(
             @Value("${payment.service.url}") String paymentServiceUrl,
             @Value("${payment.retry.max-attempts:3}") int retryMaxAttempts,
@@ -46,11 +54,22 @@ public class OrderService {
             @Value("${payment.circuit-breaker.minimum-number-of-calls:5}") int minimumNumberOfCalls,
             @Value("${payment.circuit-breaker.failure-rate-threshold:50}") float failureRateThreshold,
             @Value("${payment.circuit-breaker.wait-duration-in-open-state-ms:5000}") long openWaitMs,
-            @Value("${payment.circuit-breaker.permitted-calls-in-half-open:2}") int permittedInHalfOpen) {
+            @Value("${payment.circuit-breaker.permitted-calls-in-half-open:2}") int permittedInHalfOpen,
+            MeterRegistry meterRegistry) {
 
         this.paymentServiceClient = RestClient.builder()
                 .baseUrl(paymentServiceUrl)
                 .build();
+
+        this.ordersProcessed = Counter.builder("orders.processed")
+                .description("Total order requests received")
+                .register(meterRegistry);
+        this.ordersSuccessful = Counter.builder("orders.successful")
+                .description("Order requests that completed with a successful payment")
+                .register(meterRegistry);
+        this.ordersFallback = Counter.builder("orders.fallback")
+                .description("Order requests that ended in the fallback response")
+                .register(meterRegistry);
 
         // Retry only on a Payment Service 5xx response - a real server-side failure.
         // Deliberately NOT retried: timeouts (handled by paymentTimeout below), connection
@@ -73,7 +92,9 @@ public class OrderService {
         // Opens once at least minimumNumberOfCalls have happened and failureRateThreshold% of
         // the last slidingWindowSize calls failed. Each retry attempt counts as its own call,
         // so a couple of FAILURE requests (each retried 3 times) is enough to open it.
-        this.paymentCircuitBreaker = CircuitBreaker.of("paymentCircuitBreaker", CircuitBreakerConfig.custom()
+        // Created through a CircuitBreakerRegistry (instead of CircuitBreaker.of(...) directly)
+        // purely so TaggedCircuitBreakerMetrics below can discover and publish its metrics.
+        CircuitBreakerRegistry circuitBreakerRegistry = CircuitBreakerRegistry.of(CircuitBreakerConfig.custom()
                 .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.COUNT_BASED)
                 .slidingWindowSize(slidingWindowSize)
                 .minimumNumberOfCalls(minimumNumberOfCalls)
@@ -82,6 +103,11 @@ public class OrderService {
                 .permittedNumberOfCallsInHalfOpenState(permittedInHalfOpen)
                 .automaticTransitionFromOpenToHalfOpenEnabled(true)
                 .build());
+        this.paymentCircuitBreaker = circuitBreakerRegistry.circuitBreaker("paymentCircuitBreaker");
+
+        // Publishes state, call counts and failure rate for paymentCircuitBreaker into the same
+        // MeterRegistry as everything else, under the resilience4j_circuitbreaker_* metric names.
+        TaggedCircuitBreakerMetrics.ofCircuitBreakerRegistry(circuitBreakerRegistry).bindTo(meterRegistry);
 
         paymentCircuitBreaker.getEventPublisher().onStateTransition(event -> {
             CircuitBreaker.State toState = event.getStateTransition().getToState();
@@ -104,6 +130,7 @@ public class OrderService {
 
     public OrderResponse createOrder(OrderRequest request) {
         log.info("Order request received: orderId={}, paymentType={}", request.orderId(), request.paymentType());
+        ordersProcessed.increment();
 
         String path = paymentPath(request.paymentType(), request.orderId());
         long startTime = System.currentTimeMillis();
@@ -117,6 +144,7 @@ public class OrderService {
             String mechanism = attempts.get() > 1 ? "RETRY" : "NONE";
             log.info("Payment response received: orderId={}, status={}", request.orderId(), payment.status());
             log.info("Order completed: orderId={}", request.orderId());
+            ordersSuccessful.increment();
 
             return new OrderResponse(request.orderId(), payment.status(), 200, responseTime,
                     "Order processed successfully", mechanism, attempts.get(), currentCircuitState(),
@@ -125,6 +153,7 @@ public class OrderService {
         } catch (CallNotPermittedException e) {
             long responseTime = System.currentTimeMillis() - startTime;
             log.error("Fallback executed: orderId={}, reason=circuit-breaker-open", request.orderId());
+            ordersFallback.increment();
 
             return new OrderResponse(request.orderId(), "FALLBACK", 0, responseTime,
                     "Payment service temporarily unavailable", "CIRCUIT_BREAKER", attempts.get(),
@@ -133,6 +162,7 @@ public class OrderService {
         } catch (TimeoutException e) {
             long responseTime = System.currentTimeMillis() - startTime;
             log.error("Fallback executed: orderId={}, reason=timeout", request.orderId());
+            ordersFallback.increment();
 
             return new OrderResponse(request.orderId(), "FALLBACK", 0, responseTime,
                     "Payment service temporarily unavailable", "TIMEOUT", attempts.get(),
@@ -142,6 +172,7 @@ public class OrderService {
             long responseTime = System.currentTimeMillis() - startTime;
             String mechanism = attempts.get() > 1 ? "RETRY" : "FALLBACK";
             log.error("Fallback executed: orderId={}, reason={}", request.orderId(), e.getClass().getSimpleName());
+            ordersFallback.increment();
 
             return new OrderResponse(request.orderId(), "FALLBACK", 0, responseTime,
                     "Payment service temporarily unavailable", mechanism, attempts.get(),

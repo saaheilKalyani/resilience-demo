@@ -57,6 +57,20 @@
 			<artifactId>resilience4j-circuitbreaker</artifactId>
 			<version>2.2.0</version>
 		</dependency>
+		<!-- Publishes Resilience4j's own Circuit Breaker metrics (state, call counts, failure
+		     rate) into the same MeterRegistry that everything else below reports to. -->
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-micrometer</artifactId>
+			<version>2.2.0</version>
+		</dependency>
+
+		<!-- Exports Micrometer metrics (HTTP requests, JVM, our custom counters, Resilience4j)
+		     in the text format Prometheus scrapes from /actuator/prometheus. -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

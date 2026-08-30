@@ -1,0 +1,27 @@
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: resilience-demo-prometheus
+    ports:
+      # Host port 9092, not the standard 9090/9091 - both already used by another project's
+      # Docker containers running on this machine (powergrid-api-1 and powergrid-prometheus-1).
+      - "9092:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: resilience-demo-grafana
+    ports:
+      # Host port 3030, not the standard 3000 - already used by another project's Grafana
+      # container (powergrid-grafana-1) running on this machine.
+      - "3030:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
