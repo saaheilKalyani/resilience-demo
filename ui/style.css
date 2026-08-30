@@ -12,6 +12,9 @@
   --error-bg: #fef2f2;
   --error-border: #f3b4b4;
   --error-text: #b42318;
+  --fallback-bg: #fffaeb;
+  --fallback-border: #f5d896;
+  --fallback-text: #93650a;
   --radius: 10px;
 }
 
@@ -190,6 +193,12 @@ button:disabled {
   background: var(--error-bg);
   border-color: var(--error-border);
   color: var(--error-text);
+}
+
+.banner.fallback {
+  background: var(--fallback-bg);
+  border-color: var(--fallback-border);
+  color: var(--fallback-text);
 }
 
 .result-grid {

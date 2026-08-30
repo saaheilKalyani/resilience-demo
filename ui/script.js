@@ -11,6 +11,8 @@ const resOrderId = document.getElementById("resOrderId");
 const resPaymentStatus = document.getElementById("resPaymentStatus");
 const resResponseTime = document.getElementById("resResponseTime");
 const resHttpStatus = document.getElementById("resHttpStatus");
+const resMechanism = document.getElementById("resMechanism");
+const resAttempts = document.getElementById("resAttempts");
 
 createOrderBtn.addEventListener("click", createOrder);
 
@@ -47,14 +49,20 @@ function showResult(data, httpOk) {
   resultCard.hidden = false;
 
   const isSuccess = httpOk && data.paymentStatus === "SUCCESS";
+  const isFallback = data.paymentStatus === "FALLBACK";
 
-  resultBanner.textContent = isSuccess ? `✓ ${data.message}` : `✗ ${data.message}`;
-  resultBanner.className = "banner " + (isSuccess ? "success" : "error");
+  const icon = isSuccess ? "✓" : isFallback ? "⚠" : "✗";
+  const bannerClass = isSuccess ? "success" : isFallback ? "fallback" : "error";
+
+  resultBanner.textContent = `${icon} ${data.message}`;
+  resultBanner.className = "banner " + bannerClass;
 
   resOrderId.textContent = data.orderId ?? "—";
   resPaymentStatus.textContent = data.paymentStatus ?? "—";
   resResponseTime.textContent = data.responseTimeMs != null ? `${data.responseTimeMs} ms` : "—";
   resHttpStatus.textContent = data.paymentHttpStatus != null ? data.paymentHttpStatus : "—";
+  resMechanism.textContent = data.mechanism ?? "—";
+  resAttempts.textContent = data.attempts != null ? data.attempts : "—";
 }
 
 function showError(orderId, message) {
@@ -67,4 +75,6 @@ function showError(orderId, message) {
   resPaymentStatus.textContent = "—";
   resResponseTime.textContent = "—";
   resHttpStatus.textContent = "—";
+  resMechanism.textContent = "—";
+  resAttempts.textContent = "—";
 }

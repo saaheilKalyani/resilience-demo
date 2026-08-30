@@ -17,24 +17,28 @@ public class PaymentController {
 
     @GetMapping("/payments/{orderId}")
     public PaymentResponse pay(@PathVariable String orderId) {
-        log.info("Processing payment for orderId={}", orderId);
+        log.info("Payment request received: orderId={}", orderId);
+        log.info("Payment successful: orderId={}", orderId);
         return new PaymentResponse(orderId, "SUCCESS");
     }
 
     // Simulates a downstream failure (HTTP 500) so we can later demonstrate
     // retry, fallback and circuit breaker behavior in Order Service.
+    // ERROR because this represents a real failed payment, not just a slow one.
     @GetMapping("/payments/failure/{orderId}")
     public ResponseEntity<PaymentResponse> payFailure(@PathVariable String orderId) {
-        log.error("Simulating payment failure for orderId={}", orderId);
+        log.error("Simulated payment failure: orderId={}", orderId);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new PaymentResponse(orderId, "FAILED"));
     }
 
     // Simulates a slow downstream call so we can later demonstrate timeouts.
+    // INFO because a slow response isn't an error by itself, just a normal event worth tracking.
     @GetMapping("/payments/slow/{orderId}")
     public PaymentResponse paySlow(@PathVariable String orderId) throws InterruptedException {
-        log.warn("Simulating slow payment for orderId={}", orderId);
+        log.info("Slow payment request received: orderId={}", orderId);
         Thread.sleep(5000);
+        log.info("Slow payment completed: orderId={}", orderId);
         return new PaymentResponse(orderId, "SUCCESS");
     }
 }

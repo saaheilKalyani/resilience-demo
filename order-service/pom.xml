@@ -39,6 +39,20 @@
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
 
+		<!-- Only the two Resilience4j modules we actually use: Retry and TimeLimiter (timeout).
+		     Deliberately NOT using the resilience4j-spring-boot3 starter, since it also pulls in
+		     and auto-configures Circuit Breaker, Bulkhead and Rate Limiter, which we don't want yet. -->
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-retry</artifactId>
+			<version>2.2.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-timelimiter</artifactId>
+			<version>2.2.0</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
